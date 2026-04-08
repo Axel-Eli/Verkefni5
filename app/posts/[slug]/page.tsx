@@ -19,7 +19,7 @@ export default async function PostPage({ params }: PostPageProps) {
       <section className="page-header">
         <p className="eyebrow">Article detail</p>
         <h1>{post.title}</h1>
-        <p className="post-meta">Published: {post.publishedAt}</p>
+        <p className="post-meta">Published: {post.publishedat}</p>
       </section>
 
       <article className="post-detail">

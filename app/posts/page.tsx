@@ -16,7 +16,7 @@ export default async function PostsPage() {
         {posts.map((post) => (
           <article key={post.id} className="post-card">
             <div className="post-card-content">
-              <p className="post-meta">{post.publishedAt}</p>
+              <p className="post-meta">{post.publishedat}</p>
               <h2>{post.title}</h2>
               <p>{post.excerpt}</p>
             </div>

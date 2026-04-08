@@ -1,7 +1,7 @@
 export interface HomepageContent {
   title: string;
   description: string;
-  callToAction: string;
+  calltoaction: string;
 }
 
 export interface PostSummary {
@@ -9,7 +9,7 @@ export interface PostSummary {
   slug: string;
   title: string;
   excerpt: string;
-  publishedAt: string;
+  publishedat: string;
 }
 
 export interface PostDetail extends PostSummary {
@@ -17,39 +17,36 @@ export interface PostDetail extends PostSummary {
 }
 
 const fallbackHomepage: HomepageContent = {
-  title: "Dynamic content, ready for your CMS",
-  description:
-    "This starter app is ready to fetch editable content from a headless CMS. Replace the fallback data by configuring a CMS endpoint and token.",
-  callToAction: "Browse articles",
+  title: "Velkomin á verkefnið",
+  description: "Þetta er verkefni með Next.js og headless CMS. Tengdu við DatoCMS til að sjá raunverulegt efni.",
+  calltoaction: "Skoða færslur",
 };
 
 const fallbackPosts: PostDetail[] = [
   {
     id: "1",
     slug: "nextjs-with-cms",
-    title: "Build a Next.js site with CMS content",
-    excerpt: "Learn how to render editable homepage and article content with a headless CMS.",
-    publishedAt: "2026-04-08",
+    title: "Next.js og headless CMS",
+    excerpt: "Dæmi um hvernig hægt er að birta efni frá CMS í Next.js.",
+    publishedat: "2026-04-08",
     content:
-      "This project uses a content provider layer so your CMS can replace static content without changing the UI. Start by modeling posts with title, excerpt, slug, and body in your chosen CMS.",
+      "Þessi færsla er sýnishorn. Tengdu við DatoCMS til að sækja þetta efni beint úr gagnagrunni.",
   },
   {
     id: "2",
-    slug: "styling-with-sass",
-    title: "Style the app with Sass",
-    excerpt: "Use Sass for global and page-level styling in the App Router.",
-    publishedAt: "2026-04-07",
-    content:
-      "The app already has a Sass-based stylesheet. Add more styles in component-specific SCSS files or in the global stylesheet as needed.",
+    slug: "sass-styling",
+    title: "Styling með Sass",
+    excerpt: "Náðu stjórn á stíl með Sass í App Router verkefni.",
+    publishedat: "2026-04-07",
+    content: "Þessi færsla sýnir hvernig hægt er að nota Sass í Next.js verkefni fyrir hreinan og sveigjanlegan stíl.",
   },
   {
     id: "3",
-    slug: "deploy-to-vercel",
-    title: "Deploy the finished site to Vercel",
-    excerpt: "Push to GitHub, connect to Vercel, and add environment variables for your CMS.",
-    publishedAt: "2026-04-06",
-    content:
-      "After connecting the CMS and confirming the site works locally, deploy to Vercel and make sure your CMS variables are available in production.",
+    slug: "vercel-deployment",
+    title: "Setja verkefnið á Vercel",
+    excerpt: "Besta leiðin til að hýsa Next.js verkefni er á Vercel.",
+    publishedat: "2026-04-06",
+    content: "Þegar þú tengir verkefnið við GitHub og setur upp umhverfisbreytur getur þú hýst það á Vercel á nokkrum mínútum.",
   },
 ];
 
@@ -57,75 +54,113 @@ const cmsApiUrl = process.env.CMS_API_URL;
 const cmsApiToken = process.env.CMS_API_TOKEN;
 const useFallback = !cmsApiUrl || !cmsApiToken;
 
-async function fetchCms<T>(path: string): Promise<T> {
+console.log("[CMS] Env vars loaded:", {
+  CMS_API_URL: cmsApiUrl ? "✓ present" : "✗ missing",
+  CMS_API_TOKEN: cmsApiToken ? "✓ present" : "✗ missing",
+  useFallback,
+});
+
+interface DatoCmsResponse<T> {
+  data: T;
+  errors?: Array<{ message: string }>;
+}
+
+async function fetchDatoCms<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   if (!cmsApiUrl || !cmsApiToken) {
     throw new Error("Missing CMS_API_URL or CMS_API_TOKEN in environment.");
   }
 
-  const response = await fetch(`${cmsApiUrl}${path}`, {
+  console.log("[CMS] Fetching query:", query.substring(0, 50) + "...");
+
+  const response = await fetch(cmsApiUrl, {
+    method: "POST",
     headers: {
       Authorization: `Bearer ${cmsApiToken}`,
       "Content-Type": "application/json",
     },
+    body: JSON.stringify({ query, variables }),
     next: { revalidate: 60 },
   });
 
   if (!response.ok) {
-    throw new Error(`CMS request failed: ${response.status} ${response.statusText}`);
+    console.error("[CMS] Request failed:", response.status, response.statusText);
+    throw new Error(`DatoCMS request failed: ${response.status} ${response.statusText}`);
   }
 
-  return response.json();
+  const json = (await response.json()) as DatoCmsResponse<T>;
+
+  if (json.errors && json.errors.length > 0) {
+    console.error("[CMS] GraphQL errors:", json.errors);
+    throw new Error(`DatoCMS GraphQL error: ${json.errors.map((error) => error.message).join(", ")}`);
+  }
+
+  console.log("[CMS] Response received:", JSON.stringify(json).substring(0, 100) + "...");
+  return json.data;
 }
 
 export async function getHomepageContent(): Promise<HomepageContent> {
   if (useFallback) {
+    console.log("[CMS] Using fallback homepage content");
     return fallbackHomepage;
   }
 
-  const data = await fetchCms<any>("/homepage");
+  const query = `query Homepage { homepage { title description calltoaction } }`;
+  const data = await fetchDatoCms<{ homepage: { title?: string; description?: string; calltoaction?: string } }>(query);
 
-  return {
-    title: data.title ?? fallbackHomepage.title,
-    description: data.description ?? fallbackHomepage.description,
-    callToAction: data.call_to_action ?? fallbackHomepage.callToAction,
+  const result = {
+    title: data.homepage?.title ?? fallbackHomepage.title,
+    description: data.homepage?.description ?? fallbackHomepage.description,
+    calltoaction: data.homepage?.calltoaction ?? fallbackHomepage.calltoaction,
   };
+  console.log("[CMS] Homepage returned:", result);
+  return result;
 }
 
 export async function getPostList(): Promise<PostSummary[]> {
   if (useFallback) {
+    console.log("[CMS] Using fallback posts");
     return fallbackPosts.map(({ content, ...summary }) => summary);
   }
 
-  const data = await fetchCms<any>("/posts?sort=publishedAt:desc");
+  const query = `query AllPosts { allPosts { id slug title excerpt publishedat } }`;
+  const data = await fetchDatoCms<{ allPosts: Array<{ id: string; slug: string; title: string; excerpt?: string; publishedat?: string }> }>(query);
 
-  return data.map((item: any) => ({
-    id: String(item.id),
-    slug: item.slug,
-    title: item.title,
-    excerpt: item.excerpt || item.summary || "",
-    publishedAt: item.publishedAt ?? item.published_at ?? "",
+  const posts = data.allPosts.map((post) => ({
+    id: String(post.id),
+    slug: post.slug,
+    title: post.title,
+    excerpt: post.excerpt ?? "",
+    publishedat: post.publishedat ?? "",
   }));
+
+  console.log("[CMS] Posts returned:", posts.length, "posts");
+  return posts.sort((a, b) => (a.publishedat > b.publishedat ? -1 : 1));
 }
 
 export async function getPostBySlug(slug: string): Promise<PostDetail | null> {
   if (useFallback) {
-    const post = fallbackPosts.find((item) => item.slug === slug);
-    return post ?? null;
+    console.log("[CMS] Using fallback post for slug:", slug);
+    return fallbackPosts.find((item) => item.slug === slug) ?? null;
   }
 
-  const data = await fetchCms<any>(`/posts?filters[slug][$eq]=${encodeURIComponent(slug)}`);
-  const post = Array.isArray(data) ? data[0] : data;
+  console.log("[CMS] Fetching post by slug:", slug);
+  const query = `query PostBySlug($slug: String) { allPosts(filter: { slug: { eq: $slug } }) { id slug title excerpt content publishedat } }`;
+  const data = await fetchDatoCms<{ allPosts: Array<{ id: string; slug: string; title: string; excerpt?: string; content?: string; publishedat?: string }> }>(query, { slug });
 
+  const post = data.allPosts[0];
   if (!post) {
+    console.log("[CMS] No post found for slug:", slug);
     return null;
   }
 
-  return {
+  const result = {
     id: String(post.id),
     slug: post.slug,
     title: post.title,
-    excerpt: post.excerpt || post.summary || "",
-    publishedAt: post.publishedAt ?? post.published_at ?? "",
-    content: post.content ?? post.body ?? "",
+    excerpt: post.excerpt ?? "",
+    publishedat: post.publishedat ?? "",
+    content: post.content ?? "",
   };
+  console.log("[CMS] Post returned:", result.slug);
+  return result;
 }

@@ -13,7 +13,7 @@ export default async function Home() {
           <p>{homepage.description}</p>
           <div className="hero-actions">
             <Link href="/posts" className="primary-button">
-              {homepage.callToAction}
+              {homepage.calltoaction}
             </Link>
           </div>
         </div>
