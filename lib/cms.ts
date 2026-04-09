@@ -119,7 +119,13 @@ export async function getHomepageContent(): Promise<HomepageContent> {
 export async function getPostList(): Promise<PostSummary[]> {
   if (useFallback) {
     console.log("[CMS] Using fallback posts");
-    return fallbackPosts.map(({ content, ...summary }) => summary);
+    return fallbackPosts.map((post) => ({
+      id: post.id,
+      slug: post.slug,
+      title: post.title,
+      excerpt: post.excerpt,
+      publishedat: post.publishedat,
+    }));
   }
 
   const query = `query AllPosts { allPosts { id slug title excerpt publishedat } }`;
@@ -144,7 +150,7 @@ export async function getPostBySlug(slug: string): Promise<PostDetail | null> {
   }
 
   console.log("[CMS] Fetching post by slug:", slug);
-  const query = `query PostBySlug($slug: String) { allPosts(filter: { slug: { eq: $slug } }) { id slug title excerpt content publishedat } }`;
+  const query = `query PostBySlug($slug: String!) { allPosts(filter: { slug: { eq: $slug } }) { id slug title excerpt content publishedat } }`;
   const data = await fetchDatoCms<{ allPosts: Array<{ id: string; slug: string; title: string; excerpt?: string; content?: string; publishedat?: string }> }>(query, { slug });
 
   const post = data.allPosts[0];

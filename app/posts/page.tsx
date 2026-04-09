@@ -6,10 +6,8 @@ export default async function PostsPage() {
 
   return (
     <main className="page-content">
-      <section className="page-header">
-        <p className="eyebrow">Article list</p>
-        <h1>Editable posts from your CMS</h1>
-        <p>Each post should be managed in the headless CMS so it can be updated without changing the code.</p>
+      <section className="page-header archive-header">
+        <h1>Færslur</h1>
       </section>
 
       <section className="post-list">
@@ -21,7 +19,7 @@ export default async function PostsPage() {
               <p>{post.excerpt}</p>
             </div>
             <Link className="post-link" href={`/posts/${post.slug}`}>
-              Read article
+              Opna færslu
             </Link>
           </article>
         ))}
